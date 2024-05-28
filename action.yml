@@ -14,6 +14,9 @@ inputs:
     required: false
     default: "NODEJS"
     description: "The programing language, we support now PHP and Nodejs"
+  GITHUB_TOKEN:
+    description: "Your Github token"
+    required: true
 runs:
   using: "composite"
   steps:
@@ -24,7 +27,7 @@ runs:
       id: list_migrations
       uses: actions/github-script@v6
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ inputs.GITHUB_TOKEN }}
         script: |
           const prNumber = context.payload.pull_request.number;
           const { data: files } = await github.rest.pulls.listFiles({
@@ -89,7 +92,7 @@ runs:
       if: env.found_locks == 'true'
       uses: actions/github-script@v6
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ inputs.GITHUB_TOKEN }}
         script: |
           const prNumber = context.payload.pull_request.number;
           await github.rest.issues.addLabels({
@@ -103,7 +106,7 @@ runs:
       if: env.found_locks == 'true'
       uses: actions/github-script@v6
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ inputs.GITHUB_TOKEN }}
         script: |
           const prNumber = context.payload.pull_request.number;
           const fs = require('fs');
