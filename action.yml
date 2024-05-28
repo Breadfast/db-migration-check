@@ -42,7 +42,7 @@ runs:
           });
 
           const newMigrations = files
-            .filter(file => file.status === 'added' && file.filename.startsWith('src/database/migrations/'))
+            .filter(file => file.status === 'added' && file.filename.startsWith('${{ inputs.FILE_LOCATION }}'))
             .map(file => file.filename)
             .join('\n');
 
