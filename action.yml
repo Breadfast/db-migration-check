@@ -17,6 +17,11 @@ inputs:
   GITHUB_TOKEN:
     description: "Your Github token"
     required: true
+outputs:
+  NEW_MIGRATIONS:
+    description: "The list of the new migration files"
+    value: ${{steps.list_migrations.outputs.new_migrations}}
+
 runs:
   using: "composite"
   steps:
