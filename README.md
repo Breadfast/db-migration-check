@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     name: A job to check migration files
     steps:
-      - uses: breadfast/db-migration-check@v1
+      - uses: Mhm0ud/db-migration-check@v1
         with: 
           FILE_LOCATION: "src/migrations/"
           GUIDE_DOC: "https://dev.mysql.com/doc/refman/8.0/en/innodb-online-ddl-operations.html"
