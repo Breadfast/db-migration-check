@@ -24,11 +24,12 @@ jobs:
     runs-on: ubuntu-latest
     name: A job to check migration files
     steps:
-      - uses: Mhm0ud/db-migration-check@v1
+      - uses: breadfast/db-migration-check@v1
         with: 
           FILE_LOCATION: "src/migrations/"
           GUIDE_DOC: "https://dev.mysql.com/doc/refman/8.0/en/innodb-online-ddl-operations.html"
           LANGUAGE: "NODEJS"
+          GITHUB_TOKEN: secrets.GITHUB_TOKEN
 ```
 
 ## Configuration 
@@ -38,4 +39,5 @@ jobs:
 | FILE_LOCATION 	| The location of migration files 	| "src/migrations/"  	| NO 	|   
 | GUIDE_DOC 	| Any documentation that you need to reference here 	| "https://dev.mysql.com/doc/refman/8.0/en/innodb-online-ddl-operations.html"  	| NO 	| 
 | LANGUAGE 	| The programing language, we support now PHP and Nodejs 	| "NODEJS" 	| NO 	|
+| GITHUB_TOKEN 	| Your Github token 	| N/A 	| YES 	|
 
