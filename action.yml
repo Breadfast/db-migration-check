@@ -139,5 +139,5 @@ runs:
         exit 1
 
 branding:
-  icon: 'git-branch'  
-  color: 'orange'
+  icon: 'database'  
+  color: 'purple'
