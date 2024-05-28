@@ -60,14 +60,16 @@ runs:
       run: |
         touch extracted_sql.txt
         # Loop through each new migration file and extract lines with SQL statements
-        if ! [[ "${{ inputs.LANGUAGE }}" =~ "NODEJS" ]];then
+        if [[ "${{ inputs.LANGUAGE }}" != "NODEJS" ]]; then
           while IFS= read -r file; do
-            grep -E 'queryRunner\.(query|addColumn)' "$file" | sed -E "s/.*queryRunner\.(query|addColumn)\(['\"](.*)['\"].*/\2/" >> extracted_sql.txt
+            if [ -f "$file" ]; then
+              grep '\->addSql' "$file" | sed 's/.*->addSql(\"\(.*\)\".*/\1/' >> extracted_sql.txt
+            fi
           done < new_migrations.txt
         else
           while IFS= read -r file; do
             if [ -f "$file" ]; then
-              grep '\->addSql' "$file" | sed 's/.*->addSql(\"\(.*\)\".*/\1/' >> extracted_sql.txt
+              grep -E 'queryRunner\.(query|addColumn)' "$file" | sed -E "s/.*queryRunner\.(query|addColumn)\(['\"](.*)['\"].*/\2/" >> extracted_sql.txt
             fi
           done < new_migrations.txt
         fi
