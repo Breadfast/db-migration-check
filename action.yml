@@ -89,13 +89,19 @@ runs:
     - name: Check for potential table locks
       run: |
         touch potential_locks.txt
+        echo "Checking for potential table locks"
         # Check each SQL statement for potential table locks
         while IFS= read -r sql; do
+          echo "Checking SQL: $sql"
           if echo "$sql" | grep -iqE 'update|insert|delete|alter|create|drop|truncate'; then
+            echo "Potential lock detected: $sql"
             echo "$sql" >> potential_locks.txt
           fi
         done < extracted_sql.txt
+        echo "Extracted SQL statements:"
         cat extracted_sql.txt
+        echo "Potential locks detected:"
+        cat potential_locks.txt
       shell: bash
 
     - name: Display Potential Locks
