@@ -61,22 +61,22 @@ runs:
         touch extracted_sql.txt
         echo "LANGUAGE is: ${{ inputs.LANGUAGE }}"
         # Loop through each new migration file and extract lines with SQL statements
-        if [[ "${{ inputs.LANGUAGE }}" != "NODEJS" ]]; then
-          echo "Processing non-NODEJS files"
+        if [[ "${{ inputs.LANGUAGE }}" == "NODEJS" ]]; then
+          echo "Processing NODEJS files"
           while IFS= read -r file; do
             echo "Processing file: $file"
             if [ -f "$file" ]; then
-              grep '\->addSql' "$file" | sed 's/.*->addSql(\"\(.*\)\".*/\1/' >> extracted_sql.txt || echo "Failed to process $file"
+              awk '/queryRunner\.query/,/);/' "$file" | sed -E 's/.*queryRunner\.query\((.*)\);.*/\1/' >> extracted_sql.txt || echo "Failed to process $file"
             else
               echo "File not found: $file"
             fi
           done < new_migrations.txt
         else
-          echo "Processing NODEJS files"
+          echo "Processing Non-NODEJS files"
           while IFS= read -r file; do
             echo "Processing file: $file"
             if [ -f "$file" ]; then
-              grep -E 'queryRunner\.(query|addColumn)' "$file" | sed -E "s/.*queryRunner\.(query|addColumn)\(['\"](.*)['\"].*/\2/" >> extracted_sql.txt || echo "Failed to process $file"
+              awk '/->addSql/,/);/' "$file" | sed 's/.*->addSql(\"\(.*\)\".*/\1/' >> extracted_sql.txt || echo "Failed to process $file"
             else
               echo "File not found: $file"
             fi
@@ -84,12 +84,13 @@ runs:
         fi
       shell: bash
 
-
-
     - name: Check for potential table locks
       run: |
         touch potential_locks.txt
         echo "Checking for potential table locks"
+        echo "Extracted SQL statements:"
+        cat extracted_sql.txt
+        echo "Starting to check each SQL statement:"
         # Check each SQL statement for potential table locks
         while IFS= read -r sql; do
           echo "Checking SQL: $sql"
@@ -102,7 +103,17 @@ runs:
         cat extracted_sql.txt
         echo "Potential locks detected:"
         cat potential_locks.txt
+        found_locks=false
+        if [ -s potential_locks.txt ]; then
+          echo "Potential table locks detected:"
+          cat potential_locks.txt
+          found_locks=true
+        else
+          echo "No potential table locks detected."
+        fi
+        echo "found_locks=$found_locks" >> $GITHUB_ENV
       shell: bash
+
 
     - name: Display Potential Locks
       run: |
