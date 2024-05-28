@@ -50,9 +50,11 @@ runs:
 
     - name: Save migration file list
       run: echo "${{ steps.list_migrations.outputs.new_migrations }}" > new_migrations.txt
+      shell: bash
 
     - name: Display migration file list
       run: cat new_migrations.txt
+      shell: bash
 
     - name: Extract SQL from migration files
       run: |
@@ -69,6 +71,7 @@ runs:
             fi
           done < new_migrations.txt
         fi
+      shell: bash
 
     - name: Check for potential table locks
       run: |
@@ -80,6 +83,7 @@ runs:
           fi
         done < extracted_sql.txt
         cat extracted_sql.txt
+      shell: bash
 
     - name: Display Potential Locks
       run: |
@@ -92,6 +96,7 @@ runs:
           echo "No potential table locks detected."
         fi
         echo "found_locks=$found_locks" >> $GITHUB_ENV
+      shell: bash
 
     - name: Add "DB-Lock" label if potential table locks are found
       if: env.found_locks == 'true'
@@ -145,7 +150,8 @@ runs:
       if: env.found_locks == 'true'
       run: |
         exit 1
+      shell: bash
 
 branding:
-  icon: 'database'  
+  icon: 'database'
   color: 'purple'
