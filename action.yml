@@ -1,0 +1,143 @@
+name: 'Check DB Migration'
+description: 'Check the migration files if there is any potential lock to the tables on MySQL DB.'
+author: 'Mahmoud Almasri'
+inputs:
+  FILE_LOCATION:
+    required: false
+    default: "src/migrations/"
+    description: "The location of migration files"
+  GUIDE_DOC:
+    required: false
+    default: "https://dev.mysql.com/doc/refman/8.0/en/innodb-online-ddl-operations.html"
+    description: "Any documentation that you need to reference here."
+  LANGUAGE:
+    required: false
+    default: "NODEJS"
+    description: "The programing language, we support now PHP and Nodejs"
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: List new migration files using GitHub API
+      id: list_migrations
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const prNumber = context.payload.pull_request.number;
+          const { data: files } = await github.rest.pulls.listFiles({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: prNumber,
+          });
+
+          const newMigrations = files
+            .filter(file => file.status === 'added' && file.filename.startsWith('src/database/migrations/'))
+            .map(file => file.filename)
+            .join('\n');
+
+          core.setOutput("new_migrations", newMigrations);
+
+    - name: Save migration file list
+      run: echo "${{ steps.list_migrations.outputs.new_migrations }}" > new_migrations.txt
+
+    - name: Display migration file list
+      run: cat new_migrations.txt
+
+    - name: Extract SQL from migration files
+      run: |
+        touch extracted_sql.txt
+        # Loop through each new migration file and extract lines with SQL statements
+        if ! [[ "${{ inputs.LANGUAGE }}" =~ "NODEJS" ]];then
+          while IFS= read -r file; do
+            grep -E 'queryRunner\.(query|addColumn)' "$file" | sed -E "s/.*queryRunner\.(query|addColumn)\(['\"](.*)['\"].*/\2/" >> extracted_sql.txt
+          done < new_migrations.txt
+        else
+          while IFS= read -r file; do
+            if [ -f "$file" ]; then
+              grep '\->addSql' "$file" | sed 's/.*->addSql(\"\(.*\)\".*/\1/' >> extracted_sql.txt
+            fi
+          done < new_migrations.txt
+        fi
+
+    - name: Check for potential table locks
+      run: |
+        touch potential_locks.txt
+        # Check each SQL statement for potential table locks
+        while IFS= read -r sql; do
+          if echo "$sql" | grep -iqE 'update|insert|delete|alter|create|drop|truncate'; then
+            echo "$sql" >> potential_locks.txt
+          fi
+        done < extracted_sql.txt
+        cat extracted_sql.txt
+
+    - name: Display Potential Locks
+      run: |
+        found_locks=false
+        if [ -s potential_locks.txt ]; then
+          echo "Potential table locks detected:"
+          cat potential_locks.txt
+          found_locks=true
+        else
+          echo "No potential table locks detected."
+        fi
+        echo "found_locks=$found_locks" >> $GITHUB_ENV
+
+    - name: Add "DB-Lock" label if potential table locks are found
+      if: env.found_locks == 'true'
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const prNumber = context.payload.pull_request.number;
+          await github.rest.issues.addLabels({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+            labels: ['DB-Lock']
+          });
+
+    - name: Comment on PR with potential table locks
+      if: env.found_locks == 'true'
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const prNumber = context.payload.pull_request.number;
+          const fs = require('fs');
+          const potentialLocks = fs.readFileSync('potential_locks.txt', 'utf8');
+          const commentIdentifier = "<!-- db-lock-comment -->";
+          const commentBody = `${commentIdentifier}\n### Potential Table Locks Detected\nThe following SQL statements in the migration files might lock the tables:\n\`\`\`\n${potentialLocks}\n\`\`\`\nFor more information on how to avoid DB locks, please refer to [this guide](${{ inputs.LANGUAGE }}).`;
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+          });
+          const existingComment = comments.find(comment => comment.body.includes(commentIdentifier));
+
+          if (existingComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: commentBody,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: commentBody,
+            });
+          }
+
+    - name: Make the check status fail
+      if: env.found_locks == 'true'
+      run: |
+        exit 1
+
+branding:
+  icon: 'git-branch'  
+  color: 'orange'
