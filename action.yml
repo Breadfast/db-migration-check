@@ -61,28 +61,29 @@ runs:
         touch extracted_sql.txt
         echo "LANGUAGE is: ${{ inputs.LANGUAGE }}"
         # Loop through each new migration file and extract lines with SQL statements
-        if [[ "${{ inputs.LANGUAGE }}" == "NODEJS" ]]; then
-          echo "Processing NODEJS files"
+        if [[ "${{ inputs.LANGUAGE }}" != "NODEJS" ]]; then
+          echo "Processing non-NODEJS files"
           while IFS= read -r file; do
             echo "Processing file: $file"
             if [ -f "$file" ]; then
-              grep -E 'queryRunner\.(query|addColumn)' "$file" | sed -E "s/.*queryRunner\.(query|addColumn)\(['\"](.*)['\"].*/\2/" >> extracted_sql.txt
+              grep '\->addSql' "$file" | sed 's/.*->addSql(\"\(.*\)\".*/\1/' >> extracted_sql.txt || echo "Failed to process $file"
             else
               echo "File not found: $file"
             fi
           done < new_migrations.txt
         else
-          echo "Processing non-NODEJS files"
+          echo "Processing NODEJS files"
           while IFS= read -r file; do
             echo "Processing file: $file"
             if [ -f "$file" ]; then
-              grep '\->addSql' "$file" | sed 's/.*->addSql(\"\(.*\)\".*/\1/' >> extracted_sql.txt
+              grep -E 'queryRunner\.(query|addColumn)' "$file" | sed -E "s/.*queryRunner\.(query|addColumn)\(['\"](.*)['\"].*/\2/" >> extracted_sql.txt || echo "Failed to process $file"
             else
               echo "File not found: $file"
             fi
           done < new_migrations.txt
         fi
       shell: bash
+
 
 
     - name: Check for potential table locks
