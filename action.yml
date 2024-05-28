@@ -61,7 +61,7 @@ runs:
         touch extracted_sql.txt
         echo "LANGUAGE is: ${{ inputs.LANGUAGE }}"
         # Loop through each new migration file and extract lines with SQL statements
-        if [[ "${{ inputs.LANGUAGE }}" != "NODEJS" ]]; then
+        if [[ "${{ inputs.LANGUAGE }}" == "NODEJS" ]]; then
           echo "Processing NODEJS files"
           while IFS= read -r file; do
             echo "Processing file: $file"
