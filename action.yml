@@ -152,7 +152,7 @@ runs:
           const fs = require('fs');
           const potentialLocks = fs.readFileSync('potential_locks.txt', 'utf8');
           const commentIdentifier = "<!-- db-lock-comment -->";
-          const commentBody = `${commentIdentifier}\n### Potential Table Locks Detected\nThe following SQL statements in the migration files might lock the tables:\n\`\`\`\n${potentialLocks}\n\`\`\`\nFor more information on how to avoid DB locks, please refer to [this guide](${{ inputs.LANGUAGE }}).`;
+          const commentBody = `${commentIdentifier}\n### Potential Table Locks Detected\nThe following SQL statements in the migration files might lock the tables:\n\`\`\`\n${potentialLocks}\n\`\`\`\nFor more information on how to avoid DB locks, please refer to [this guide](${{ inputs.GUIDE_DOC }}).`;
           const { data: comments } = await github.rest.issues.listComments({
             owner: context.repo.owner,
             repo: context.repo.repo,
